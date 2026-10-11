@@ -5,22 +5,13 @@ module.exports = async (req, res) => {
         return res.status(200).send('Relais Vercel opérationnel !');
     }
 
-    const INFINITYFREE_URL = 'https://apgestion.free.nf/webhook_receiver.php';
-
     try {
         const payload = req.body;
+        console.log("DONNEES SHOPIFY REÇUES :", JSON.stringify(payload, null, 2));
 
-        const response = await fetch(INFINITYFREE_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: typeof payload === 'string' ? payload : JSON.stringify(payload)
-        });
-
-        const textResponse = await response.text();
-        return res.status(200).json({ success: true, server_response: textResponse });
+        return res.status(200).json({ success: true, message: "Données capturées dans les logs Vercel" });
     } catch (error) {
+        console.error('Erreur:', error);
         return res.status(200).json({ success: false, error: error.message });
     }
 };
