@@ -13,14 +13,13 @@ module.exports = async (req, res) => {
         const response = await fetch(INFINITYFREE_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Webhook-Secret': 'MonSuperSecretShopify2026'
+                'Content-Type': 'application/json'
             },
             body: typeof payload === 'string' ? payload : JSON.stringify(payload)
         });
 
         const textResponse = await response.text();
-        return res.status(200).json({ success: true, response: textResponse });
+        return res.status(200).json({ success: true, server_response: textResponse });
     } catch (error) {
         return res.status(200).json({ success: false, error: error.message });
     }
