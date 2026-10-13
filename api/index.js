@@ -1,45 +1,23 @@
-// Stockage temporaire en mémoire des dernières commandes sur Vercel
-let commandesQueue = [];
-
-module.exports = async (req, res) => {
-    // 1. Si Shopify envoie une commande (POST)
+export default async function handler(req, res) {
     if (req.method === 'POST') {
+        const orderData = req.body;
+
+        // Transmettre immédiatement à InfinityFree
         try {
-            const payload = req.body;
-            console.log("DONNEES SHOPIFY REÇUES :", JSON.stringify(payload, null, 2));
-            
-            // On ajoute la commande à la liste (maximum 50 stockées)
-            commandesQueue.push({
-                received_at: new Date().toISOString(),
-                data: payload
+            await fetch('https://apgestion.free.nf/recuperer_commandes.php', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Vercel-Relay-Agent'
+                },
+                body: JSON.stringify(orderData)
             });
-            if (commandesQueue.length > 50) commandesQueue.shift();
-
-            return res.status(200).json({ success: true, message: 'Stocké sur Vercel' });
-        } catch (error) {
-            return res.status(200).json({ success: false, error: error.message });
-        }
-    }
-
-    // 2. Si InfinityFree vient récupérer les commandes (GET avec un secret)
-    if (req.method === 'GET') {
-        const secret = req.query.secret;
-        
-        // Sécurité basique pour protéger l'accès aux commandes
-        if (secret !== 'MonSuperSecret2026') {
-            return res.status(403).json({ error: 'Accès non autorisé' });
+        } catch (err) {
+            console.error("Erreur lors de la transmission vers InfinityFree:", err);
         }
 
-        // On renvoie la liste des commandes et on vide la file d'attente
-        const currentCommandes = [...commandesQueue];
-        commandesQueue = []; // Optionnel : décommentez si vous voulez vider après lecture
-
-        return res.status(200).json({ 
-            success: true, 
-            count: currentCommandes.length,
-            commandes: currentCommandes 
-        });
+        return res.status(200).json({ status: "received" });
     }
 
-    return res.status(405).send('Méthode non autorisée');
-};
+    return res.status(200).send("Relay active");
+}
