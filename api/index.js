@@ -1,23 +1,39 @@
+let ordersStore = [];
+
 export default async function handler(req, res) {
-    if (req.method === 'POST') {
-        const orderData = req.body;
+  // Config CORS pour autoriser l'accès depuis votre dashboard InfinityFree
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-        // Transmettre immédiatement à InfinityFree
-        try {
-            await fetch('https://apgestion.free.nf/recuperer_commandes.php', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Vercel-Relay-Agent'
-                },
-                body: JSON.stringify(orderData)
-            });
-        } catch (err) {
-            console.error("Erreur lors de la transmission vers InfinityFree:", err);
-        }
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-        return res.status(200).json({ status: "received" });
+  // 1. RECEPTION DU WEBHOOK SHOPIFY (POST)
+  if (req.method === 'POST') {
+    try {
+      const orderData = req.body;
+      if (orderData && orderData.id) {
+        // Ajouter la commande au début de la liste
+        ordersStore.unshift({
+          received_at: new Date().toISOString(),
+          data: orderData
+        });
+        // Garder les 50 dernières commandes
+        if (ordersStore.length > 50) ordersStore.pop();
+      }
+      return res.status(200).json({ status: "ok" });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
+  }
 
-    return res.status(200).send("Relay active");
+  // 2. LECTURE PAR LE DASHBOARD INFINITYFREE (GET)
+  if (req.method === 'GET') {
+    return res.status(200).json(ordersStore);
+  }
+
+  return res.status(405).send("Method Not Allowed");
 }
